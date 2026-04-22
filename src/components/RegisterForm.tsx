@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { loginAction } from "@/app/actions/auth";
 
 export default function RegisterForm() {
   const [name, setName] = useState("");
@@ -14,7 +13,6 @@ export default function RegisterForm() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -27,15 +25,19 @@ export default function RegisterForm() {
         setLoading(false);
         return;
       }
+      const loginRes = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!loginRes.ok) {
+        setError("Account created! Please sign in.");
+        setLoading(false);
+        return;
+      }
+      window.location.href = "/";
     } catch {
-      setError("Registration failed. Please try again.");
-      setLoading(false);
-      return;
-    }
-
-    const result = await loginAction(email, password);
-    if (result?.error) {
-      setError("Account created! Please sign in.");
+      setError("Something went wrong. Please try again.");
       setLoading(false);
     }
   }

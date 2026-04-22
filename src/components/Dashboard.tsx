@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { signOutAction } from "@/app/actions/auth";
-import type { Session } from "next-auth";
+import type { AppSession } from "@/lib/auth";
 import AdWatcher from "@/components/AdWatcher";
 import StatsCard from "@/components/StatsCard";
 import WinHistory from "@/components/WinHistory";
@@ -15,7 +14,7 @@ interface Stats {
   recentDraws: Array<{ id: string; date: string; totalPool: number; winnersCount: number; prizePerWinner: number }>;
 }
 
-export default function Dashboard({ session }: { session: Session }) {
+export default function Dashboard({ session }: { session: AppSession }) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -32,7 +31,12 @@ export default function Dashboard({ session }: { session: Session }) {
 
   function handleAdWatched() { fetchStats(); setShowConfetti(true); setTimeout(() => setShowConfetti(false), 4000); }
 
-  const isAdmin = (session.user as { isAdmin?: boolean })?.isAdmin;
+  async function handleSignOut() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  }
+
+  const isAdmin = session.user.isAdmin;
 
   return (
     <div className="min-h-screen" style={{ background: "linear-gradient(135deg, #9333ea 0%, #ec4899 50%, #f97316 100%)" }}>
@@ -67,7 +71,7 @@ export default function Dashboard({ session }: { session: Session }) {
         {stats && stats.recentDraws.length > 0 && <LotteryDraws draws={stats.recentDraws} />}
         {isAdmin && <div className="text-center mb-4"><a href="/admin" className="text-white/80 underline text-sm hover:text-white">Admin Panel</a></div>}
         <div className="text-center">
-          <button onClick={() => signOutAction()} className="text-white/70 underline text-sm hover:text-white transition-colors">Sign Out</button>
+          <button onClick={handleSignOut} className="text-white/70 underline text-sm hover:text-white transition-colors">Sign Out</button>
         </div>
       </div>
     </div>

@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { loginAction } from "@/app/actions/auth";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -13,9 +12,21 @@ export default function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const result = await loginAction(email, password);
-    if (result?.error) {
-      setError(result.error);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Invalid email or password");
+        setLoading(false);
+        return;
+      }
+      window.location.href = "/";
+    } catch {
+      setError("Something went wrong. Please try again.");
       setLoading(false);
     }
   }
