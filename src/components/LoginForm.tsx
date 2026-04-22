@@ -2,35 +2,31 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function LoginForm() {
+function LoginFormInner() {
+  const searchParams = useSearchParams();
+  const errorParam = searchParams.get("error");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
     setLoading(true);
-    try {
-      const result = await signIn("credentials", { email, password, redirect: false });
-      if (result?.error) {
-        setError("Invalid email or password");
-      } else {
-        window.location.href = "/";
-      }
-    } catch {
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    await signIn("credentials", { email, password, callbackUrl: "/" });
+    setLoading(false);
   }
 
   return (
     <div className="bg-white rounded-2xl shadow-2xl p-8">
       <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Sign In</h2>
-      {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>}
+      {errorParam && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
+          Invalid email or password
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -46,5 +42,13 @@ export default function LoginForm() {
       </form>
       <p className="text-center text-sm text-gray-600 mt-6">Don&apos;t have an account? <Link href="/register" className="text-purple-600 font-semibold hover:text-purple-800">Sign up free</Link></p>
     </div>
+  );
+}
+
+export default function LoginForm() {
+  return (
+    <Suspense>
+      <LoginFormInner />
+    </Suspense>
   );
 }

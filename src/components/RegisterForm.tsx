@@ -21,16 +21,10 @@ export default function RegisterForm() {
         body: JSON.stringify({ name, email, password }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || "Registration failed"); return; }
-      const result = await signIn("credentials", { email, password, redirect: false });
-      if (result?.error) {
-        setError("Registered but failed to sign in. Please log in manually.");
-      } else {
-        window.location.href = "/";
-      }
+      if (!res.ok) { setError(data.error || "Registration failed"); setLoading(false); return; }
+      await signIn("credentials", { email, password, callbackUrl: "/" });
     } catch {
       setError("Something went wrong. Please try again.");
-    } finally {
       setLoading(false);
     }
   }
