@@ -3,7 +3,9 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getTodayDate, hasWatchedAdToday, addToPool } from "@/lib/lottery";
 
-const AD_REVENUE_PER_VIEW = 0.001;
+// Set AD_REVENUE_PER_VIEW in Vercel env vars to match your actual ad network payout.
+// Google IMA completed video views typically pay $0.01–$0.05 per view.
+const AD_REVENUE_PER_VIEW = parseFloat(process.env.AD_REVENUE_PER_VIEW ?? "0.001");
 
 export async function POST() {
   const session = await auth();

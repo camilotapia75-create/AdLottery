@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { signOut } from "next-auth/react";
-import type { Session } from "next-auth";
+import type { AppSession } from "@/lib/auth";
 import AdWatcher from "@/components/AdWatcher";
 import StatsCard from "@/components/StatsCard";
 import WinHistory from "@/components/WinHistory";
@@ -15,7 +14,7 @@ interface Stats {
   recentDraws: Array<{ id: string; date: string; totalPool: number; winnersCount: number; prizePerWinner: number }>;
 }
 
-export default function Dashboard({ session }: { session: Session }) {
+export default function Dashboard({ session }: { session: AppSession }) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -32,7 +31,10 @@ export default function Dashboard({ session }: { session: Session }) {
 
   function handleAdWatched() { fetchStats(); setShowConfetti(true); setTimeout(() => setShowConfetti(false), 4000); }
 
-  const isAdmin = (session.user as { isAdmin?: boolean })?.isAdmin;
+  async function handleSignOut() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  }
 
   return (
     <div className="min-h-screen" style={{ background: "linear-gradient(135deg, #9333ea 0%, #ec4899 50%, #f97316 100%)" }}>
@@ -41,7 +43,7 @@ export default function Dashboard({ session }: { session: Session }) {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">💰 Ad Lottery</h1>
           <p className="text-white/80">Watch ads, win real money</p>
-          {session.user?.name && <p className="text-white/60 text-sm mt-1">Welcome back, {session.user.name}!</p>}
+          {session.user.name && <p className="text-white/60 text-sm mt-1">Welcome back, {session.user.name}!</p>}
         </div>
         <div className="grid grid-cols-3 gap-3 mb-6">
           <StatsCard icon="$" label="Today's Pool" value={loading ? "..." : `$${(stats?.todayPool ?? 0).toFixed(2)}`} />
@@ -58,15 +60,17 @@ export default function Dashboard({ session }: { session: Session }) {
         <div className="bg-white rounded-2xl p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-800 text-center mb-6">How It Works</h2>
           <div className="grid grid-cols-3 gap-4 text-center">
-            <div><div className="text-4xl mb-3">👀</div><div className="font-semibold text-gray-800 mb-1">1. Watch Ad</div><div className="text-sm text-gray-500">Watch one ad per day (takes 3 seconds)</div></div>
+            <div><div className="text-4xl mb-3">📺</div><div className="font-semibold text-gray-800 mb-1">1. Watch Ad</div><div className="text-sm text-gray-500">Watch one video ad per day</div></div>
             <div><div className="text-4xl mb-3">🏟️</div><div className="font-semibold text-gray-800 mb-1">2. Get Entry</div><div className="text-sm text-gray-500">You&apos;re entered into today&apos;s lottery</div></div>
             <div><div className="text-4xl mb-3">💸</div><div className="font-semibold text-gray-800 mb-1">3. Win Money</div><div className="text-sm text-gray-500">Random winners split the ad revenue</div></div>
           </div>
         </div>
         {stats && stats.recentWins.length > 0 && <WinHistory wins={stats.recentWins} />}
         {stats && stats.recentDraws.length > 0 && <LotteryDraws draws={stats.recentDraws} />}
-        {isAdmin && <div className="text-center mb-4"><a href="/admin" className="text-white/80 underline text-sm hover:text-white">Admin Panel</a></div>}
-        <div className="text-center"><button onClick={() => signOut({ callbackUrl: "/login" })} className="text-white/70 underline text-sm hover:text-white transition-colors">Sign Out</button></div>
+        {session.user.isAdmin && <div className="text-center mb-4"><a href="/admin" className="text-white/80 underline text-sm hover:text-white">Admin Panel</a></div>}
+        <div className="text-center">
+          <button onClick={handleSignOut} className="text-white/70 underline text-sm hover:text-white transition-colors">Sign Out</button>
+        </div>
       </div>
     </div>
   );
