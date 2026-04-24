@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { signOut } from "next-auth/react";
-import type { Session } from "next-auth";
+import type { AppSession } from "@/lib/auth";
 import Link from "next/link";
 
 interface AdminStats {
@@ -10,7 +9,7 @@ interface AdminStats {
   allDraws: Array<{ id: string; date: string; totalPool: number; totalViews: number; winnersCount: number; prizePerWinner: number; drawnAt: string }>;
 }
 
-export default function AdminDashboard({ session }: { session: Session }) {
+export default function AdminDashboard({ session }: { session: AppSession }) {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [drawing, setDrawing] = useState(false);
@@ -41,6 +40,11 @@ export default function AdminDashboard({ session }: { session: Session }) {
     finally { setDrawing(false); }
   }
 
+  async function handleSignOut() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  }
+
   return (
     <div className="min-h-screen" style={{ background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%)" }}>
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -48,7 +52,7 @@ export default function AdminDashboard({ session }: { session: Session }) {
           <div><h1 className="text-3xl font-bold text-white">⚙️ Admin Panel</h1><p className="text-white/60 text-sm">Ad Lottery Management</p></div>
           <div className="flex gap-3">
             <Link href="/" className="px-4 py-2 bg-white/20 text-white rounded-xl text-sm hover:bg-white/30 transition-colors">← Back to App</Link>
-            <button onClick={() => signOut({ callbackUrl: "/login" })} className="px-4 py-2 bg-red-500/20 text-red-300 rounded-xl text-sm hover:bg-red-500/30 transition-colors">Sign Out</button>
+            <button onClick={handleSignOut} className="px-4 py-2 bg-red-500/20 text-red-300 rounded-xl text-sm hover:bg-red-500/30 transition-colors">Sign Out</button>
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
