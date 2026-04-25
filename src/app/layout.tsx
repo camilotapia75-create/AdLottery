@@ -23,6 +23,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           crossOrigin="anonymous"
           strategy="afterInteractive"
         />
+        <Script
+          id="vignette-ad"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(s){s.dataset.zone='10922111';s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement,document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`
+          }}
+        />
       </body>
     </html>
   );

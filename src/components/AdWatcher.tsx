@@ -28,12 +28,6 @@ export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAd
   }
 
   function startWatching() {
-    if (!ZONE_HASH) {
-      setState("error");
-      setMessage("Ad network not configured yet. Check back soon!");
-      return;
-    }
-
     const url = `https://wall.adscendmedia.com/rev.php?hash=${ZONE_HASH}&subid=${encodeURIComponent(userId)}`;
     const popup = window.open(url, "adscend_wall", "width=900,height=700,scrollbars=yes,resizable=yes");
 
@@ -109,7 +103,6 @@ export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAd
         {reachedLimit ? "All done for today!" : "Watch a video ad"}
       </h2>
 
-      {/* Progress bar */}
       {adsWatchedToday > 0 && (
         <div className="mb-4">
           <div className="flex justify-between text-sm text-gray-500 mb-1">
@@ -135,6 +128,13 @@ export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAd
         </>
       ) : poolDrawn ? (
         <><div className="text-5xl mb-3">🔒</div><p className="text-gray-600 mb-2">Today&apos;s lottery has already been drawn.</p><p className="text-gray-400 text-sm">Come back tomorrow!</p></>
+      ) : !ZONE_HASH ? (
+        <>
+          <p className="text-gray-500 mb-3">Video ads are being set up — check back soon!</p>
+          <div className="p-4 bg-purple-50 rounded-xl">
+            <p className="text-purple-700 text-sm">🔔 We&apos;re finalizing our ad partner. You&apos;ll be able to watch and earn very soon.</p>
+          </div>
+        </>
       ) : (
         <>
           <p className="text-gray-500 mb-6">
