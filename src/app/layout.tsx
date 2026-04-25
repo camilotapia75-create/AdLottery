@@ -19,11 +19,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <body>
         <SessionProvider session={session}>{children}</SessionProvider>
-        {/* Monetag CPM network */}
-        <Script
-          src="https://pl29243909.profitablecpmratenetwork.com/3f/ab/1d/3fab1d89fa00c4792852a8c29bb264db.js"
-          strategy="afterInteractive"
-        />
         {adsensePubId && (
           <Script
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsensePubId}`}
