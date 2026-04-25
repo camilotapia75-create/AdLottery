@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from "react";
 import type { AppSession } from "@/lib/auth";
 import AdWatcher from "@/components/AdWatcher";
-import GoogleAdUnit from "@/components/GoogleAdUnit";
 import StatsCard from "@/components/StatsCard";
 import WinHistory from "@/components/WinHistory";
 import LotteryDraws from "@/components/LotteryDraws";
@@ -65,12 +64,11 @@ export default function Dashboard({ session }: { session: AppSession }) {
           loading={loading}
           userId={session.user.id}
         />
-        <GoogleAdUnit />
         <div className="bg-white rounded-2xl p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-800 text-center mb-6">How It Works</h2>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div><div className="text-4xl mb-3">📺</div><div className="font-semibold text-gray-800 mb-1">1. Watch Ads</div><div className="text-sm text-gray-500">Up to 10 video ads per day</div></div>
-            <div><div className="text-4xl mb-3">🏟️</div><div className="font-semibold text-gray-800 mb-1">2. Get Entries</div><div className="text-sm text-gray-500">Each ad = one lottery entry</div></div>
+            <div><div className="text-4xl mb-3">🏙️</div><div className="font-semibold text-gray-800 mb-1">2. Get Entries</div><div className="text-sm text-gray-500">Each ad = one lottery entry</div></div>
             <div><div className="text-4xl mb-3">💸</div><div className="font-semibold text-gray-800 mb-1">3. Win Money</div><div className="text-sm text-gray-500">Random winners split the revenue</div></div>
           </div>
         </div>
