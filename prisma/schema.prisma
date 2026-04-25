@@ -16,14 +16,17 @@ model User {
   image         String?
   password      String?
   isAdmin       Boolean   @default(false)
+  referralCode  String?   @unique
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts  Account[]
-  sessions  Session[]
-  adViews   AdView[]
-  earnings  Earning[]
-  entries   LotteryEntry[]
+  accounts      Account[]
+  sessions      Session[]
+  adViews       AdView[]
+  earnings      Earning[]
+  entries       LotteryEntry[]
+  referralsMade Referral[] @relation("ReferralsMade")
+  referredBy    Referral?  @relation("ReferredBy")
 }
 
 model Account {
@@ -76,13 +79,14 @@ model AdView {
 model LotteryEntry {
   id        String   @id @default(cuid())
   userId    String
-  adViewId  String   @unique
+  adViewId  String?  @unique
   date      String
+  source    String   @default("ad")
   enteredAt DateTime @default(now())
   isWinner  Boolean  @default(false)
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  adView AdView @relation(fields: [adViewId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adView AdView? @relation(fields: [adViewId], references: [id], onDelete: Cascade)
 }
 
 model LotteryDraw {
@@ -114,4 +118,22 @@ model DailyPool {
   viewCount Int      @default(0)
   drawn     Boolean  @default(false)
   updatedAt DateTime @updatedAt
+}
+
+model Waitlist {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+}
+
+model Referral {
+  id         String   @id @default(cuid())
+  code       String
+  referrerId String
+  refereeId  String   @unique
+  createdAt  DateTime @default(now())
+
+  referrer User @relation("ReferralsMade", fields: [referrerId], references: [id])
+  referee  User @relation("ReferredBy", fields: [refereeId], references: [id])
 }
