@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import VideoAdPlayer from "@/components/VideoAdPlayer";
 
 const ZONE_HASH = process.env.NEXT_PUBLIC_ADSCEND_ZONE_HASH ?? "";
 const FALLBACK_SECONDS = 30;
@@ -13,7 +14,7 @@ interface AdWatcherProps {
   userId: string;
 }
 
-type WatchState = "idle" | "watching" | "error";
+type WatchState = "idle" | "watching" | "watching-video" | "error";
 
 export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAdWatched, loading, userId }: AdWatcherProps) {
   const [state, setState] = useState<WatchState>("idle");
@@ -101,7 +102,11 @@ export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAd
   }
 
   function startWatching() {
-    ZONE_HASH ? startAdscend() : startFallbackTimer();
+    if (ZONE_HASH) {
+      startAdscend();
+    } else {
+      setState("watching-video");
+    }
   }
 
   if (loading) return (
@@ -140,6 +145,15 @@ export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAd
         </>
       )}
       <button onClick={() => { stopAll(); setState("idle"); }} className="mt-4 text-gray-400 text-sm underline hover:text-gray-600">Cancel</button>
+    </div>
+  );
+
+  if (state === "watching-video") return (
+    <div className="bg-white rounded-2xl p-6 mb-6">
+      <h2 className="text-xl font-bold text-gray-800 mb-1 text-center">Watching Ad...</h2>
+      <p className="text-gray-500 text-sm mb-4 text-center">Watch the full video to earn your lottery entry</p>
+      <VideoAdPlayer onComplete={submitWatch} onFallback={startFallbackTimer} />
+      <button onClick={() => setState("idle")} className="w-full text-gray-400 text-sm underline hover:text-gray-600 text-center">Cancel</button>
     </div>
   );
 

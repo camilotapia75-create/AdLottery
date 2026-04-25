@@ -23,6 +23,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           crossOrigin="anonymous"
           strategy="afterInteractive"
         />
+        <Script
+          src="https://imasdk.googleapis.com/js/sdkloader/ima3.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
