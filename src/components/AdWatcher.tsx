@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 
 const ZONE_HASH = process.env.NEXT_PUBLIC_ADSCEND_ZONE_HASH ?? "";
+const FALLBACK_SECONDS = 30;
 
 interface AdWatcherProps {
   adsWatchedToday: number;
@@ -17,30 +18,66 @@ type WatchState = "idle" | "watching" | "error";
 export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAdWatched, loading, userId }: AdWatcherProps) {
   const [state, setState] = useState<WatchState>("idle");
   const [message, setMessage] = useState("");
+  const [countdown, setCountdown] = useState(FALLBACK_SECONDS);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, []);
 
-  function stopPolling() {
+  function stopAll() {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   }
 
-  function startWatching() {
+  async function submitWatch() {
+    try {
+      const res = await fetch("/api/ad/watch", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setState("idle");
+        onAdWatched();
+      } else {
+        setState("error");
+        setMessage(data.error || "Failed to record ad view");
+      }
+    } catch {
+      setState("error");
+      setMessage("Network error. Please try again.");
+    }
+  }
+
+  function startFallbackTimer() {
+    setState("watching");
+    setCountdown(FALLBACK_SECONDS);
+    timerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!);
+          timerRef.current = null;
+          submitWatch();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }
+
+  function startAdscend() {
     const url = `https://wall.adscendmedia.com/rev.php?hash=${ZONE_HASH}&subid=${encodeURIComponent(userId)}`;
     const popup = window.open(url, "adscend_wall", "width=900,height=700,scrollbars=yes,resizable=yes");
-
     if (!popup) {
       setState("error");
       setMessage("Popup was blocked. Please allow popups for this site and try again.");
       return;
     }
-
     setState("watching");
     const prevCount = adsWatchedToday;
     let polls = 0;
-
     pollRef.current = setInterval(async () => {
       polls++;
       try {
@@ -48,7 +85,7 @@ export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAd
         if (res.ok) {
           const data = await res.json();
           if (data.adsWatchedToday > prevCount) {
-            stopPolling();
+            stopAll();
             setState("idle");
             onAdWatched();
             return;
@@ -56,11 +93,15 @@ export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAd
         }
       } catch {}
       if (polls > 150) {
-        stopPolling();
+        stopAll();
         setState("error");
         setMessage("Timed out. If you finished the video, refresh the page.");
       }
     }, 2000);
+  }
+
+  function startWatching() {
+    ZONE_HASH ? startAdscend() : startFallbackTimer();
   }
 
   if (loading) return (
@@ -78,12 +119,27 @@ export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAd
   if (state === "watching") return (
     <div className="bg-white rounded-2xl p-8 mb-6 text-center">
       <div className="text-5xl mb-4 animate-pulse">🎬</div>
-      <h2 className="text-xl font-bold text-gray-800 mb-2">Ad Window Open</h2>
-      <p className="text-gray-500 text-sm mb-4">Watch the full video in the popup to earn your lottery entry</p>
-      <div className="p-4 bg-purple-50 rounded-xl mb-4">
-        <p className="text-purple-600 text-sm">📺 Complete the video in the ad window — your entry will be recorded automatically.</p>
-      </div>
-      <button onClick={() => { stopPolling(); setState("idle"); }} className="text-gray-400 text-sm underline hover:text-gray-600">Cancel</button>
+      <h2 className="text-xl font-bold text-gray-800 mb-2">Watching Ad...</h2>
+      {ZONE_HASH ? (
+        <>
+          <p className="text-gray-500 text-sm mb-4">Watch the full video in the popup to earn your lottery entry</p>
+          <div className="p-4 bg-purple-50 rounded-xl mb-4">
+            <p className="text-purple-600 text-sm">📺 Complete the video in the ad window — your entry will be recorded automatically.</p>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-gray-500 text-sm mb-6">Please wait while the ad plays</p>
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold text-white mx-auto mb-4"
+            style={{ background: "linear-gradient(135deg, #9333ea 0%, #ec4899 100%)" }}
+          >
+            {countdown}
+          </div>
+          <p className="text-gray-400 text-sm">seconds remaining</p>
+        </>
+      )}
+      <button onClick={() => { stopAll(); setState("idle"); }} className="mt-4 text-gray-400 text-sm underline hover:text-gray-600">Cancel</button>
     </div>
   );
 
@@ -128,13 +184,6 @@ export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAd
         </>
       ) : poolDrawn ? (
         <><div className="text-5xl mb-3">🔒</div><p className="text-gray-600 mb-2">Today&apos;s lottery has already been drawn.</p><p className="text-gray-400 text-sm">Come back tomorrow!</p></>
-      ) : !ZONE_HASH ? (
-        <>
-          <p className="text-gray-500 mb-3">Video ads are being set up — check back soon!</p>
-          <div className="p-4 bg-purple-50 rounded-xl">
-            <p className="text-purple-700 text-sm">🔔 We&apos;re finalizing our ad partner. You&apos;ll be able to watch and earn very soon.</p>
-          </div>
-        </>
       ) : (
         <>
           <p className="text-gray-500 mb-6">
@@ -143,7 +192,7 @@ export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAd
               : `Watch ${dailyLimit - adsWatchedToday} more ad${dailyLimit - adsWatchedToday === 1 ? "" : "s"} for more chances to win!`}
           </p>
           <button onClick={startWatching} className="px-8 py-4 text-white font-bold text-lg rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 active:scale-95" style={{ background: "linear-gradient(135deg, #9333ea 0%, #ec4899 100%)" }}>
-            ▶ {adsWatchedToday === 0 ? "Watch Video Ad Now" : "Watch Another Ad"}
+            ▶ {adsWatchedToday === 0 ? "Watch Ad Now" : "Watch Another Ad"}
           </button>
         </>
       )}
