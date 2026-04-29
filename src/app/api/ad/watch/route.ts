@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getTodayDate, hasWatchedAdToday, addToPool } from "@/lib/lottery";
+import { getTodayDate, getAdViewsToday, addToPool, DAILY_AD_LIMIT } from "@/lib/lottery";
 
 const AD_REVENUE_PER_VIEW = 0.001;
 
@@ -11,8 +11,9 @@ export async function POST() {
   const userId = session.user.id;
   const today = getTodayDate();
   try {
-    const alreadyWatched = await hasWatchedAdToday(userId, today);
-    if (alreadyWatched) return NextResponse.json({ error: "You have already watched an ad today. Come back tomorrow!" }, { status: 400 });
+    const adsToday = await getAdViewsToday(userId, today);
+    if (adsToday >= DAILY_AD_LIMIT)
+      return NextResponse.json({ error: "You've reached today's ad limit. Come back tomorrow!" }, { status: 400 });
     const adView = await prisma.adView.create({ data: { userId, date: today, adRevenue: AD_REVENUE_PER_VIEW } });
     await prisma.lotteryEntry.create({ data: { userId, adViewId: adView.id, date: today } });
     await addToPool(today, AD_REVENUE_PER_VIEW);
