@@ -24,7 +24,7 @@ export default function LoginForm() {
         setLoading(false);
         return;
       }
-      window.location.href = "/";
+      window.location.href = data.isAdmin ? "/admin" : "/";
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);
