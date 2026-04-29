@@ -20,10 +20,12 @@ export default function ChatPage() {
 
   async function sendMessage() {
     const text = input.trim();
-    // Prevent sending empty messages — root cause of the API 400 error
     if (!text) return;
 
-    const newMessages: Message[] = [...messages, { role: "user", content: text }];
+    // Only include messages that have non-empty content (guards against poisoned history)
+    const validHistory = messages.filter((m) => m.content.trim() !== "");
+    const newMessages: Message[] = [...validHistory, { role: "user", content: text }];
+
     setMessages(newMessages);
     setInput("");
     setLoading(true);
@@ -39,12 +41,22 @@ export default function ChatPage() {
       const data = await res.json();
 
       if (!res.ok) {
+        // Roll back: remove the user message we just added so history stays clean
+        setMessages(validHistory);
         setError(data.error ?? "Something went wrong");
         return;
       }
 
-      setMessages([...newMessages, { role: "assistant", content: data.content }]);
+      const assistantContent = data.content?.trim();
+      if (!assistantContent) {
+        // Don't store an empty assistant reply — it would poison the next request
+        setMessages(newMessages);
+        return;
+      }
+
+      setMessages([...newMessages, { role: "assistant", content: assistantContent }]);
     } catch {
+      setMessages(validHistory);
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);
