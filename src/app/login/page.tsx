@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import LoginForm from "@/components/LoginForm";
+import Link from "next/link";
 
 export default async function LoginPage() {
   const session = await auth();
@@ -13,6 +14,12 @@ export default async function LoginPage() {
           <p className="text-white/80">Watch ads, win real money</p>
         </div>
         <LoginForm />
+        <p className="text-center text-white/60 text-sm mt-6">
+          Not ready to sign up?{" "}
+          <Link href="/waitlist" className="text-white underline hover:text-white/80">
+            Join the waitlist
+          </Link>
+        </p>
       </div>
     </div>
   );
