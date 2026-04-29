@@ -57,8 +57,13 @@ export async function sendBatchEmails({
           batch.map((email) => ({ from, to: [email], subject, html }))
         ),
       });
-      if (res.ok) sent += batch.length;
-      else failed += batch.length;
+      if (res.ok) {
+        sent += batch.length;
+      } else {
+        const err = await res.text();
+        console.error("Resend batch error:", err);
+        failed += batch.length;
+      }
     } catch {
       failed += batch.length;
     }

@@ -18,7 +18,7 @@ export default function AdminDashboard({ session }: { session: AppSession }) {
   const [drawResult, setDrawResult] = useState("");
   const [drawDate, setDrawDate] = useState(new Date().toISOString().split("T")[0]);
   const [waitlist, setWaitlist] = useState<{ list: WaitlistEntry[]; count: number } | null>(null);
-  const [emailSubject, setEmailSubject] = useState("&#x1F389; Ad Lottery is now live!");
+  const [emailSubject, setEmailSubject] = useState("🎉 Ad Lottery is now live!");
   const [emailMessage, setEmailMessage] = useState("Hi there!\n\nGreat news — Ad Lottery is officially live! Watch short video ads and get entered into daily cash prize draws.\n\nSign up now and start earning!");
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState("");
@@ -121,7 +121,7 @@ export default function AdminDashboard({ session }: { session: AppSession }) {
                 <p className="text-white/70 text-sm font-medium">Send launch email to all waitlisters:</p>
                 <input type="text" placeholder="Email subject" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} className="w-full px-4 py-3 bg-white/20 text-white rounded-xl border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 placeholder-white/40" />
                 <textarea placeholder="Email body..." value={emailMessage} onChange={(e) => setEmailMessage(e.target.value)} rows={4} className="w-full px-4 py-3 bg-white/20 text-white rounded-xl border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 placeholder-white/40 resize-none" />
-                <button onClick={handleSendEmail} disabled={sending} className="px-6 py-3 bg-green-500 hover:bg-green-400 text-white font-bold rounded-xl transition-colors disabled:opacity-50">{sending ? "Sending..." : `&#x1F4E7; Send to All ${waitlist.count} Waitlisters`}</button>
+                <button onClick={handleSendEmail} disabled={sending} className="px-6 py-3 bg-green-500 hover:bg-green-400 text-white font-bold rounded-xl transition-colors disabled:opacity-50">{sending ? "Sending..." : `📧 Send to All ${waitlist.count} Waitlisters`}</button>
                 {sendResult && <div className={`p-3 rounded-xl text-sm ${sendResult.startsWith("&#x2705;") || sendResult.startsWith("✅") ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`} dangerouslySetInnerHTML={{ __html: sendResult }} />}
               </div>
             </>
