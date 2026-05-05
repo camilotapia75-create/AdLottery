@@ -65,6 +65,18 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model Charity {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  website     String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  entries   LotteryEntry[]
+  donations CharityDonation[]
+}
+
 model AdView {
   id        String   @id @default(cuid())
   userId    String
@@ -80,24 +92,42 @@ model LotteryEntry {
   id        String   @id @default(cuid())
   userId    String
   adViewId  String?  @unique
+  charityId String?
   date      String
   source    String   @default("ad")
   enteredAt DateTime @default(now())
   isWinner  Boolean  @default(false)
 
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  adView AdView? @relation(fields: [adViewId], references: [id], onDelete: SetNull)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adView  AdView?  @relation(fields: [adViewId], references: [id], onDelete: SetNull)
+  charity Charity? @relation(fields: [charityId], references: [id], onDelete: SetNull)
 }
 
 model LotteryDraw {
-  id             String   @id @default(cuid())
-  date           String   @unique
-  totalPool      Float    @default(0)
-  totalViews     Int      @default(0)
-  winnersCount   Int      @default(0)
-  prizePerWinner Float    @default(0)
-  drawnAt        DateTime @default(now())
-  winnerIds      String   @default("[]")
+  id           String   @id @default(cuid())
+  date         String   @unique
+  totalPool    Float    @default(0)
+  totalViews   Int      @default(0)
+  winnersCount Int      @default(0)
+  prizePerWinner Float  @default(0)
+  drawnAt      DateTime @default(now())
+  winnerIds    String   @default("[]")
+
+  donations CharityDonation[]
+}
+
+model CharityDonation {
+  id        String    @id @default(cuid())
+  charityId String
+  drawId    String
+  amount    Float
+  votes     Int
+  sent      Boolean   @default(false)
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  charity Charity     @relation(fields: [charityId], references: [id])
+  draw    LotteryDraw @relation(fields: [drawId], references: [id])
 }
 
 model Earning {

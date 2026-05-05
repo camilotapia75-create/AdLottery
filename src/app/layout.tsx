@@ -3,8 +3,8 @@ import "./globals.css";
 import Script from "next/script";
 
 export const metadata: Metadata = {
-  title: "Ad Lottery - Watch Ads, Win Real Money",
-  description: "Watch one video ad per day and get entered into the daily lottery to win real money!",
+  title: "Ad for Good - Watch Ads, Donate to Charity",
+  description: "Watch short video ads and the revenue gets donated to your chosen charity. Make every ad count.",
   other: {
     "google-adsense-account": "ca-pub-2425690390095661",
   },

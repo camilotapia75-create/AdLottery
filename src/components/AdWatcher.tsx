@@ -5,6 +5,8 @@ import VideoAdPlayer from "@/components/VideoAdPlayer";
 const ZONE_HASH = process.env.NEXT_PUBLIC_ADSCEND_ZONE_HASH ?? "";
 const FALLBACK_SECONDS = 30;
 
+interface Charity { id: string; name: string; description: string; website?: string | null; }
+
 interface AdWatcherProps {
   adsWatchedToday: number;
   dailyLimit: number;
@@ -14,16 +16,30 @@ interface AdWatcherProps {
   userId: string;
 }
 
-type WatchState = "idle" | "watching" | "watching-video" | "error";
+type WatchState = "idle" | "picking" | "watching" | "watching-video" | "error";
 
 export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAdWatched, loading, userId }: AdWatcherProps) {
   const [state, setState] = useState<WatchState>("idle");
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(FALLBACK_SECONDS);
+  const [charities, setCharities] = useState<Charity[]>([]);
+  const [selectedCharity, setSelectedCharity] = useState<Charity | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    fetch("/api/charities")
+      .then((r) => r.json())
+      .then((d) => {
+        setCharities(d.charities ?? []);
+        // Restore last selection from localStorage
+        const saved = localStorage.getItem("selectedCharityId");
+        if (saved && d.charities) {
+          const match = d.charities.find((c: Charity) => c.id === saved);
+          if (match) setSelectedCharity(match);
+        }
+      })
+      .catch(() => {});
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
       if (timerRef.current) clearInterval(timerRef.current);
@@ -35,9 +51,18 @@ export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAd
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   }
 
+  function selectCharity(c: Charity) {
+    setSelectedCharity(c);
+    localStorage.setItem("selectedCharityId", c.id);
+  }
+
   async function submitWatch() {
     try {
-      const res = await fetch("/api/ad/watch", { method: "POST" });
+      const res = await fetch("/api/ad/watch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ charityId: selectedCharity?.id ?? null }),
+      });
       const data = await res.json();
       if (res.ok) { setState("idle"); onAdWatched(); }
       else { setState("error"); setMessage(data.error || "Failed to record ad view"); }
@@ -79,7 +104,7 @@ export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAd
   }
 
   function startWatching() {
-    if (ZONE_HASH) { startAdscend(); } else { setState("watching-video"); }
+    if (ZONE_HASH) startAdscend(); else setState("watching-video");
   }
 
   if (loading) return (
@@ -94,12 +119,41 @@ export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAd
 
   const reachedLimit = adsWatchedToday >= dailyLimit;
 
+  if (state === "picking") return (
+    <div className="bg-white rounded-2xl p-6 mb-6">
+      <h2 className="text-xl font-bold text-gray-800 mb-1 text-center">Choose Your Charity</h2>
+      <p className="text-gray-500 text-sm text-center mb-4">Your ad view will send money to this charity</p>
+      <div className="space-y-2 mb-4">
+        {charities.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => selectCharity(c)}
+            className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all ${selectedCharity?.id === c.id ? "border-purple-500 bg-purple-50" : "border-gray-200 hover:border-purple-300"}`}
+          >
+            <div className="font-semibold text-gray-800">{c.name}</div>
+            <div className="text-xs text-gray-500">{c.description}</div>
+          </button>
+        ))}
+      </div>
+      <button
+        onClick={() => { if (selectedCharity) startWatching(); }}
+        disabled={!selectedCharity}
+        className="w-full py-3 text-white font-bold rounded-xl disabled:opacity-40 transition-all"
+        style={{ background: "linear-gradient(135deg, #9333ea 0%, #ec4899 100%)" }}
+      >
+        ▶ Watch Ad for {selectedCharity?.name ?? "..."}
+      </button>
+      <button onClick={() => setState("idle")} className="w-full mt-2 text-gray-400 text-sm underline hover:text-gray-600">Cancel</button>
+    </div>
+  );
+
   if (state === "watching") return (
     <div className="bg-white rounded-2xl p-8 mb-6 text-center">
       <div className="text-5xl mb-4 animate-pulse">🎬</div>
       <h2 className="text-xl font-bold text-gray-800 mb-2">Watching Ad...</h2>
+      {selectedCharity && <p className="text-purple-600 text-sm font-medium mb-2">Voting for: {selectedCharity.name}</p>}
       {ZONE_HASH ? (
-        <p className="text-gray-500 text-sm mb-4">Watch the full video in the popup to earn your lottery entry</p>
+        <p className="text-gray-500 text-sm mb-4">Watch the full video in the popup to cast your vote</p>
       ) : (
         <>
           <p className="text-gray-500 text-sm mb-6">Please wait while the ad plays</p>
@@ -114,7 +168,7 @@ export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAd
   if (state === "watching-video") return (
     <div className="bg-white rounded-2xl p-6 mb-6">
       <h2 className="text-xl font-bold text-gray-800 mb-1 text-center">Watching Ad...</h2>
-      <p className="text-gray-500 text-sm mb-4 text-center">Watch the full video to earn your lottery entry</p>
+      {selectedCharity && <p className="text-purple-600 text-sm font-medium text-center mb-2">Voting for: {selectedCharity.name}</p>}
       <VideoAdPlayer onComplete={submitWatch} onFallback={startFallbackTimer} />
       <button onClick={() => setState("idle")} className="w-full text-gray-400 text-sm underline hover:text-gray-600 text-center">Cancel</button>
     </div>
@@ -139,12 +193,21 @@ export default function AdWatcher({ adsWatchedToday, dailyLimit, poolDrawn, onAd
           <div className="w-full bg-gray-100 rounded-full h-3"><div className="h-3 rounded-full transition-all duration-500" style={{ width: `${(adsWatchedToday / dailyLimit) * 100}%`, background: "linear-gradient(135deg, #9333ea 0%, #ec4899 100%)" }} /></div>
         </div>
       )}
+      {selectedCharity && !reachedLimit && !poolDrawn && (
+        <p className="text-purple-600 text-sm font-medium mb-3">Currently voting for: <strong>{selectedCharity.name}</strong> · <button onClick={() => setState("picking")} className="underline">change</button></p>
+      )}
       {reachedLimit ? (
-        <><p className="text-gray-500 mb-3">You&apos;ve watched all {dailyLimit} ads today &mdash; you have {dailyLimit} entries in tonight&apos;s lottery!</p><p className="text-gray-400 text-xs">Come back tomorrow to watch more</p><div className="mt-4 p-4 bg-purple-50 rounded-xl"><p className="text-purple-700 text-sm">🏆 More ads watched = more lottery entries = better odds of winning!</p></div></>
+        <><p className="text-gray-500 mb-3">You&apos;ve cast all {dailyLimit} votes today!</p><p className="text-gray-400 text-xs">Come back tomorrow to vote again</p></>
       ) : poolDrawn ? (
-        <><div className="text-5xl mb-3">🔒</div><p className="text-gray-600 mb-2">Today&apos;s lottery has already been drawn.</p><p className="text-gray-400 text-sm">Come back tomorrow!</p></>
+        <><div className="text-5xl mb-3">🔒</div><p className="text-gray-600 mb-2">Today&apos;s donations have already been distributed.</p><p className="text-gray-400 text-sm">Come back tomorrow!</p></>
       ) : (
-        <><p className="text-gray-500 mb-6">{adsWatchedToday === 0 ? `Watch up to ${dailyLimit} video ads per day — each one gets you a lottery entry!` : `Watch ${dailyLimit - adsWatchedToday} more ad${dailyLimit - adsWatchedToday === 1 ? "" : "s"} for more chances to win!`}</p><button onClick={startWatching} className="px-8 py-4 text-white font-bold text-lg rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 active:scale-95" style={{ background: "linear-gradient(135deg, #9333ea 0%, #ec4899 100%)" }}>▶ {adsWatchedToday === 0 ? "Watch Ad Now" : "Watch Another Ad"}</button></>
+        <button
+          onClick={() => selectedCharity ? startWatching() : setState("picking")}
+          className="px-8 py-4 text-white font-bold text-lg rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 active:scale-95"
+          style={{ background: "linear-gradient(135deg, #9333ea 0%, #ec4899 100%)" }}
+        >
+          ▶ {adsWatchedToday === 0 ? "Watch Ad & Vote" : "Watch Another Ad"}
+        </button>
       )}
     </div>
   );

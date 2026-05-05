@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { drawLottery, getTodayDate } from "@/lib/lottery";
+import { distributeDonations, getTodayDate } from "@/lib/lottery";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -9,11 +9,11 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     const date = body.date || getTodayDate();
-    const result = await drawLottery(date);
+    const result = await distributeDonations(date);
     if (!result.success) return NextResponse.json({ error: result.message }, { status: 400 });
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Error drawing lottery:", error);
-    return NextResponse.json({ error: "Failed to draw lottery" }, { status: 500 });
+    console.error("Error distributing donations:", error);
+    return NextResponse.json({ error: "Failed to distribute donations" }, { status: 500 });
   }
 }
